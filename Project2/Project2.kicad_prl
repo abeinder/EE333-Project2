@@ -62,11 +62,11 @@
       35,
       36
     ],
-    "visible_layers": "fffffef_ffffffff",
+    "visible_layers": "fffffff_ffffffff",
     "zone_display_mode": 0
   },
   "meta": {
-    "filename": "Project 2.kicad_prl",
+    "filename": "Project2.kicad_prl",
     "version": 3
   },
   "project": {
