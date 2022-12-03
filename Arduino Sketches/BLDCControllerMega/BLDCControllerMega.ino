@@ -41,7 +41,7 @@ void setup() {
 // Analog comparator ISR
 ISR (ANALOG_COMP_vect) {
   // BEMF debounce
-    for(i = 0; i < 10; i++) {
+    for(i = 0; i < 50; i++) {
       if(bldc_step & 1){
         if(!(ACSR & 0x20)) i -= 1;
       }

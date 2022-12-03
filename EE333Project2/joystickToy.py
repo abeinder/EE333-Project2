@@ -16,8 +16,9 @@ for joystick in joysticks:
 my_square = pygame.Rect(50, 50, 50, 50)
 my_square_color = 0
 colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255)]
-motion = [0, 0]
-accumulated = [0, 0]
+motion = [0, 0, 0, 0]
+accumulated = [0, 0, 0]
+
 
 def get_new_accumulated():
 
@@ -31,23 +32,32 @@ def get_new_accumulated():
             print(event)
             if event.axis < 2:
                 motion[event.axis] = event.value
+            if event.axis == 4:
+                motion[2] = event.value
+            if event.axis == 5:
+                motion[3] = event.value
         if event.type == QUIT:
             pygame.quit()
             sys.exit()
 
     print(motion)
 
-    for i in range(0, len(motion)):
+    for i in range(0, 2):
         accumulated[i] += motion[i]
         if accumulated[i] < 0:
             accumulated[i] = 0
         if accumulated[i] > 255:
             accumulated[i] = 255
         accumulated[i] = int(accumulated[i])
+    if abs(motion[2]) > 0:
+        accumulated[2] = 1
+    elif abs(motion[3]) > 0:
+        accumulated[2] = 2
 
     print(accumulated)
 
     clock.tick(60)
+
 
 while True:
 

@@ -5,7 +5,7 @@
 #define SPEED_DOWN        A1
 #define PWM_MAX_DUTY      255
 #define PWM_MIN_DUTY      50
-#define PWM_START_DUTY    100
+#define PWM_START_DUTY    80
 
 byte bldc_step = 0, motor_speed;
 unsigned int i;
@@ -18,14 +18,16 @@ char blank[3];
 
 // initialize the library by associating any needed LCD interface pin
 // with the arduino pin number it is connected to
-const int rs = 28, en = 29, d4 = 25, d5 = 24, d6 = 23, d7 = 22;
+const int rs = 26, en = 27, d4 = 25, d5 = 24, d6 = 23, d7 = 22;
 LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 
-const int NUM_ITERS_BLUETOOTH = 1000;
-const int NUM_ITERS_LCD = 100;
+const int NUM_ITERS_BLUETOOTH = 10;
+const int NUM_ITERS_LCD = 10000;
 
 char msg[4];
-char msg1[4];
+int q0;
+int q1;
+int q2;
 int rw = 0;
 int iters_b = 0;
 int iters_l = 0;
@@ -86,51 +88,85 @@ void readFromBLE(char* reply) {
 
 void handleBluetooth() {
   char message[20];
-  
-  int u;
-  for (u=0; u<20; u++) {
-    message[u] = ' ';
+
+  int i;
+  for (i=0; i<20; i++) {
+    message[i] = ' ';
   }
+  
   readFromBLE(message);
-    int o = 0;
-    int p = 0;
-    int v = 0;
-    
-    if (message[0] == command[0]) {
-      if (message[1] == command[1]) {
-        if (message[1] == command[2]) {
-          o = 1;
-        }
+  //Serial.print("message: ");
+  //Serial.print(message);
+
+  int o = 0;
+  int p = 0;
+
+  char command[3];
+  command[0] = 'A';
+  command[1] = 'T';
+  command[2] = '+';
+
+  char blank[3];
+  blank[0] = '\0';
+  blank[1] = ' ';
+  blank[2] = ' ';
+
+  if (message[0] == command[0]) {
+    if (message[1] == command[1]) {
+      if (message[1] == command[2]) {
+        o = 1;
       }
     }
-  
-    if (message[0] == blank[0]) {
-      if (message[1] == blank[1]) {
-        if (message[1] == blank[2]) {
-          o = 1;
-        }
+  }
+
+  if (message[0] == blank[0]) {
+    if (message[1] == blank[1]) {
+      if (message[1] == blank[2]) {
+        o = 1;
       }
     }
+  }
   
-    
-    delay(1);
-    
-    if (o != 1 && p != 1) {
+  delay(1);
 
-      msg1[0] = message[0];
-      msg1[1] = message[1];
-      msg1[2] = message[2];
+  if (o != 1 && p != 1) {
+    msg[0] = message[0];
+    msg[1] = message[1];
+    msg[2] = message[2];
+    msg[3] = '\0';
 
-        
-      msg[0] = message[0];
-      msg[1] = message[1];
-      msg[2] = message[2];
-      msg[3] = '\0';
+    int q01;
+    int q11;
+    q01 = msg[0]-'0';
+    q11 = msg[1]-'0';
+    q2 = (msg[2]-'0'+48);
+
+    //Serial.print(msg);
+    //Serial.print("\n");
+
+    if (q01 != -16 && q01 != 78 && q01 != 21 && q01 != 29 && q01 != 69) {
+      q0 = (q01+48)*2;
+      if (q0 < 55) {
+        q0 = 55;
+      }
+      Serial.print(q01);
+      Serial.print("\n");
       
-      //sendCommand("AT+");
+      analogWrite(12, q0);
     }
 
-  return;
+    if (q11 != -16 && q11 != -48) {
+      q1 = (q11+48)*2;
+      //if (q1 < 55) {
+      //  q1 = 55;
+      //}
+      
+      analogWrite(13, q1);
+    
+    
+    sendCommand("AT+");
+  }
+  }
 }
 
 void handleLCD() {
@@ -138,11 +174,13 @@ void handleLCD() {
     
     // (note: line 1 is the second row, since counting begins with 0):
     lcd.setCursor(0, 1);
-    lcd.print(msg);
-    lcd.print("   ");
-    //Serial.print(msg);
-    //Serial.print("\n");
-    delay(1);
+    if (q0 != -16) {
+      lcd.print(q0);
+      lcd.print("   ");
+      lcd.print(q1);
+      lcd.print("    ");
+    }
+    
     
 }
 
@@ -152,7 +190,7 @@ void handleLCD() {
 // Analog comparator ISR
 ISR (ANALOG_COMP_vect) {
   // BEMF debounce
-    for(i = 0; i < 10; i++) {
+    for(i = 0; i < 100; i++) {
       if(bldc_step & 1){
         if(!(ACSR & 0x20)) i -= 1;
       }
@@ -328,10 +366,12 @@ void setup() {
   lcd.begin(16, 2);
   // Print a message to the LCD.
   lcd.print("hello, world!");
-  delay(100);
+  delay(1000);
 
   Serial1.begin(115200);
   Serial.begin(115200);
+
+  Serial.print("Hello world!");
 
   sendCommand("AT");
 
@@ -393,42 +433,37 @@ void loop() {
       motor_speed++;
       SET_PWM_DUTY(motor_speed);
       Serial.print("u\n");
-      delay(100);
+      delay(10);
     }
     while (!(digitalRead(SPEED_DOWN)) && motor_speed > PWM_MIN_DUTY) {
       motor_speed--;
       SET_PWM_DUTY(motor_speed);
       Serial.print("d\n");
-      delay(100);
+      delay(10);
     }
 
     int m;
     m = atoi(msg);
-    analogWrite(12, m);
-    analogWrite(13, m);
+    //analogWrite(12, m);
+    //analogWrite(13, m);
     
 
   
     if (iters_b >= NUM_ITERS_BLUETOOTH) {
       handleBluetooth();
+      //Serial.print(m);
+      //Serial.print("\n");
       iters_b = 0;
     } else {
       iters_b++;
-      //Serial.print("it: ");
-      //Serial.print(iters_b);
-      //Serial.print("\n");
     }
-  
+
     if (iters_l >= NUM_ITERS_LCD) {
       handleLCD();
       iters_l = 0;
     } else {
       iters_l++;
-      //Serial.print("i lt: ");
-      //Serial.print(iters_l);
-      //Serial.print("\n");
     }
-
     
   }
     
