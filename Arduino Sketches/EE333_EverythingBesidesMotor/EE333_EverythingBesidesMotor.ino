@@ -7,8 +7,11 @@
 const int rs = 28, en = 29, d4 = 25, d5 = 24, d6 = 23, d7 = 22;
 LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 
-const int NUM_ITERS_BLUETOOTH = 1000;
+const int NUM_ITERS_BLUETOOTH = 10;
 const int NUM_ITERS_LCD = 10000;
+
+Servo servo1;
+Servo servo2;
 
 char msg[4];
 int rw = 0;
@@ -54,12 +57,12 @@ void setup() {
   delay(1000);
 
   Serial1.begin(115200);
-  Serial.begin(115200);
+  Serial.begin(9600);
 
   sendCommand("AT");
 
-  pinMode(12, OUTPUT);
-  pinMode(13, OUTPUT);
+  servo1.attach(12);
+  servo2.attach(13);
 }
 
 void handleBluetooth() {
@@ -121,22 +124,24 @@ void handleLCD() {
     lcd.setCursor(0, 1);
     lcd.print(msg);
     lcd.print("   ");
-    Serial.print(msg);
-    Serial.print("\n");
+    //Serial.print(msg);
+    //Serial.print("\n");
     
 }
 
 void loop() {
   
     int m;
-    m = atoi(msg);
-    analogWrite(12, m);
-    analogWrite(13, m);
+    m = atoi(msg[0]);
+    Serial.write(msg);
+    Serial.write("\n");
+    servo1.write(msg[0]);
+    servo2.write(msg[1]);
     
   if (iters_b >= NUM_ITERS_BLUETOOTH) {
     handleBluetooth();
-    Serial.print(m);
-    Serial.print("\n");
+    //Serial.print(m);
+    //Serial.print("\n");
     iters_b = 0;
   } else {
     iters_b++;

@@ -41,7 +41,7 @@ void setup() {
 // Analog comparator ISR
 ISR (ANALOG_COMP_vect) {
   // BEMF debounce
-    for(i = 0; i < 10; i++) {
+    for(i = 0; i < 70; i++) {
       if(bldc_step & 1){
         if(!(ACSR & 0x20)) i -= 1;
       }
@@ -118,27 +118,27 @@ void loop() {
 
 ////////////////////////////////////////////////////////////////////////////////////////
 void BEMF_A_RISING() {
-  ADMUX = 2;              // Select analog channel 4 as comparator negative input
+  ADMUX = 4;              // Select analog channel 4 as comparator negative input
   ACSR |= 0x03;           // rising edge
 }
 void BEMF_A_FALLING() {
-  ADMUX = 2;              // Select analog channel 4 as comparator negative input
+  ADMUX = 4;              // Select analog channel 4 as comparator negative input
   ACSR &= ~0x01;          // falling edge
 }
 void BEMF_B_RISING() {
-  ADMUX = 3;              // Select analog channel 2 as comparator negative input
+  ADMUX = 2;              // Select analog channel 2 as comparator negative input
   ACSR |= 0x03;           // rising edge
 }
 void BEMF_B_FALLING() {
-  ADMUX = 3;              // Select analog channel 2 as comparator negative input
+  ADMUX = 2;              // Select analog channel 2 as comparator negative input
   ACSR &= ~0x01;          // falling edge
 }
 void BEMF_C_RISING() {
-  ADMUX = 4;              // Select analog channel 3 as comparator negative input
+  ADMUX = 3;              // Select analog channel 3 as comparator negative input
   ACSR |= 0x03;           // rising edge
 }
 void BEMF_C_FALLING() {
-  ADMUX = 4;              // Select analog channel 3 as comparator negative input
+  ADMUX = 3;              // Select analog channel 3 as comparator negative input
   ACSR &= ~0x01;          // falling edge
 }
 

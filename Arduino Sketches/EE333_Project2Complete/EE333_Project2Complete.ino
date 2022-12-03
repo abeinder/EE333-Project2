@@ -1,8 +1,7 @@
 // include the library code:
 #include <LiquidCrystal.h>
+#include <Servo.h>
 
-#define SPEED_UP          A0
-#define SPEED_DOWN        A1
 #define PWM_MAX_DUTY      255
 #define PWM_MIN_DUTY      50
 #define PWM_START_DUTY    100
@@ -29,6 +28,9 @@ char msg1[4];
 int rw = 0;
 int iters_b = 0;
 int iters_l = 0;
+
+Servo servo1;
+Servo servo2;
 
 // --------------------------------------
 
@@ -152,7 +154,7 @@ void handleLCD() {
 // Analog comparator ISR
 ISR (ANALOG_COMP_vect) {
   // BEMF debounce
-    for(i = 0; i < 10; i++) {
+    for(i = 0; i < 100; i++) {
       if(bldc_step & 1){
         if(!(ACSR & 0x20)) i -= 1;
       }
@@ -201,27 +203,27 @@ void bldc_move() {       // BLDC motor commutation function
 
 ////////////////////////////////////////////////////////////////////////////////////////
 void BEMF_A_RISING() {
-  ADMUX = 2;              // Select analog channel 4 as comparator negative input
+  ADMUX = 4;              // Select analog channel 4 as comparator negative input
   ACSR |= 0x03;           // rising edge
 }
 void BEMF_A_FALLING() {
-  ADMUX = 2;              // Select analog channel 4 as comparator negative input
+  ADMUX = 4;              // Select analog channel 4 as comparator negative input
   ACSR &= ~0x01;          // falling edge
 }
 void BEMF_B_RISING() {
-  ADMUX = 3;              // Select analog channel 2 as comparator negative input
+  ADMUX = 2;              // Select analog channel 2 as comparator negative input
   ACSR |= 0x03;           // rising edge
 }
 void BEMF_B_FALLING() {
-  ADMUX = 3;              // Select analog channel 2 as comparator negative input
+  ADMUX = 2;              // Select analog channel 2 as comparator negative input
   ACSR &= ~0x01;          // falling edge
 }
 void BEMF_C_RISING() {
-  ADMUX = 4;              // Select analog channel 3 as comparator negative input
+  ADMUX = 3;              // Select analog channel 3 as comparator negative input
   ACSR |= 0x03;           // rising edge
 }
 void BEMF_C_FALLING() {
-  ADMUX = 4;              // Select analog channel 3 as comparator negative input
+  ADMUX = 3;              // Select analog channel 3 as comparator negative input
   ACSR &= ~0x01;          // falling edge
 }
 
@@ -355,12 +357,9 @@ void setup() {
   TCCR2B = 0x01;
   // Analog comparator setting
   ACSR   = 0x10;           // Disable and clear (flag bit) analog comparator interrupt
-  pinMode(SPEED_UP,   INPUT_PULLUP);
-  pinMode(SPEED_DOWN, INPUT_PULLUP);
-
   
-  pinMode(12, OUTPUT);
-  pinMode(13, OUTPUT);
+  servo1.attach(12);
+  servo2.attach(13);
 
   
 }
@@ -389,7 +388,7 @@ void loop() {
   ADCSRB = (1 << ACME);
   
   while (1) {
-    while (!(digitalRead(SPEED_UP)) && motor_speed < PWM_MAX_DUTY) {
+    /*while (!(digitalRead(SPEED_UP)) && motor_speed < PWM_MAX_DUTY) {
       motor_speed++;
       SET_PWM_DUTY(motor_speed);
       Serial.print("u\n");
@@ -400,12 +399,14 @@ void loop() {
       SET_PWM_DUTY(motor_speed);
       Serial.print("d\n");
       delay(100);
-    }
+    }*/
 
     int m;
     m = atoi(msg);
     analogWrite(12, m);
     analogWrite(13, m);
+    Serial.write(msg);
+    Serial.write("\n");
     
 
   
