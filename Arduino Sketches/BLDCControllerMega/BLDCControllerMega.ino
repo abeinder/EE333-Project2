@@ -3,16 +3,21 @@
    This is a free software with NO WARRANTY.
    https://simple-circuit.com/
 */
+#include <Servo.h>
 
 #define SPEED_UP          A0
 #define SPEED_DOWN        A1
 #define PWM_MAX_DUTY      255
 #define PWM_MIN_DUTY      20
-#define PWM_START_DUTY    100
+#define PWM_START_DUTY    150
 
 byte bldc_step = 0, motor_speed;
 unsigned int i;
 unsigned int a;
+
+Servo servo1;
+Servo servo2;
+
 void setup() {
   Serial.begin(115200);
 
@@ -35,13 +40,15 @@ void setup() {
   TCCR2B = 0x01;
   // Analog comparator setting
   ACSR   = 0x10;           // Disable and clear (flag bit) analog comparator interrupt
-  pinMode(SPEED_UP,   INPUT_PULLUP);
-  pinMode(SPEED_DOWN, INPUT_PULLUP);
+
+  servo1.attach(13);
+  servo1.write(0);
+
 }
 // Analog comparator ISR
 ISR (ANALOG_COMP_vect) {
   // BEMF debounce
-    for(i = 0; i < 50; i++) {
+    for(i = 0; i < 150; i++) {
       if(bldc_step & 1){
         if(!(ACSR & 0x20)) i -= 1;
       }
@@ -86,11 +93,11 @@ void bldc_move() {       // BLDC motor commutation function
 
 void loop() {
   SET_PWM_DUTY(PWM_START_DUTY);    // Setup starting PWM with duty cycle = PWM_START_DUTY
-  i = 5000;
+  i = 1000;
   delay(1000);
   // Motor start
-  while(i > 100) {
-    delayMicroseconds(i);
+  while(i > 20) {
+    delayMicroseconds(i*10);
     bldc_move();
     bldc_step++;
     bldc_step %= 6;
@@ -101,44 +108,33 @@ void loop() {
   
   ADCSRA = (0 << ADEN);   // Disable the ADC module
   ADCSRB = (1 << ACME);
-  while(1) {
-    while(!(digitalRead(SPEED_UP)) && motor_speed < PWM_MAX_DUTY){
-      motor_speed++;
-      SET_PWM_DUTY(motor_speed);
-      delay(100);
-    }
-    while(!(digitalRead(SPEED_DOWN)) && motor_speed > PWM_MIN_DUTY){
-      motor_speed--;
-      SET_PWM_DUTY(motor_speed);
-      delay(100);
-    }
-  }
+  
 }
 
 
 ////////////////////////////////////////////////////////////////////////////////////////
 void BEMF_A_RISING() {
-  ADMUX = 2;              // Select analog channel 4 as comparator negative input
+  ADMUX = 4;              // Select analog channel 4 as comparator negative input
   ACSR |= 0x03;           // rising edge
 }
 void BEMF_A_FALLING() {
-  ADMUX = 2;              // Select analog channel 4 as comparator negative input
+  ADMUX = 4;              // Select analog channel 4 as comparator negative input
   ACSR &= ~0x01;          // falling edge
 }
 void BEMF_B_RISING() {
-  ADMUX = 3;              // Select analog channel 2 as comparator negative input
+  ADMUX = 2;              // Select analog channel 2 as comparator negative input
   ACSR |= 0x03;           // rising edge
 }
 void BEMF_B_FALLING() {
-  ADMUX = 3;              // Select analog channel 2 as comparator negative input
+  ADMUX = 2;              // Select analog channel 2 as comparator negative input
   ACSR &= ~0x01;          // falling edge
 }
 void BEMF_C_RISING() {
-  ADMUX = 4;              // Select analog channel 3 as comparator negative input
+  ADMUX = 3;              // Select analog channel 3 as comparator negative input
   ACSR |= 0x03;           // rising edge
 }
 void BEMF_C_FALLING() {
-  ADMUX = 4;              // Select analog channel 3 as comparator negative input
+  ADMUX = 3;              // Select analog channel 3 as comparator negative input
   ACSR &= ~0x01;          // falling edge
 }
 

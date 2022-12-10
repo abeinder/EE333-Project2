@@ -13,7 +13,7 @@ async def get_device(name: str):
 async def main():
     # devices = await BleakScanner.discover()
 
-    d = await get_device("bluino")
+    d = await get_device("BT05")
 
     ble_device = BleakClient
 

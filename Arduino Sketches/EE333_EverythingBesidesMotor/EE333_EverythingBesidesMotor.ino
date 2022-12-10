@@ -7,10 +7,17 @@
 const int rs = 26, en = 27, d4 = 25, d5 = 24, d6 = 23, d7 = 22;
 LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 
-const int NUM_ITERS_BLUETOOTH = 10;
+const int NUM_ITERS_BLUETOOTH = 100;
 const int NUM_ITERS_LCD = 10000;
 
+Servo servo1;
+Servo servo2;
+
 char msg[4];
+char servo1Pos;
+char servo2Pos;
+bool increaseSpeed;
+bool decreaseSpeed;
 int q0;
 int q1;
 int q2;
@@ -60,9 +67,9 @@ void setup() {
   Serial.begin(115200);
 
   sendCommand("AT");
-  Serial.print("hello, world!");
-  pinMode(12, OUTPUT);
-  pinMode(13, OUTPUT);
+
+  servo1.attach(12);
+  servo2.attach(13);
 }
 
 void handleBluetooth() {
@@ -74,9 +81,6 @@ void handleBluetooth() {
   }
   
   readFromBLE(message);
-  //Serial.print("message: ");
-  //Serial.print(message);
-
   int o = 0;
   int p = 0;
 
@@ -128,22 +132,41 @@ void handleBluetooth() {
       if (q0 < 55) {
         q0 = 55;
       }
-      Serial.print(q01);
-      Serial.print("\n");
+
+      int speedCommand = msg[0] >> 5;
+      if (speedCommand == 1) {
+        increaseSpeed = true;
+        //Serial.write("Increase speed\n");
+      } else if (speedCommand == 2) {
+        decreaseSpeed = true;
+        //Serial.write("Decrease speed\n");
+      }
       
-      analogWrite(12, q0);
+      char servo1PosPotential = (((msg[0] - (speedCommand << 5)) + (msg[1] >> 6)) << 3)-1;
+      byte valCast = servo1PosPotential;
+      if (valCast < 128 && valCast != 7) {
+        servo1Pos = servo1PosPotential;
+        byte val = servo1Pos;
+        Serial.println(val);
+      }
+      
+      servo1Pos = servo1PosPotential;
+      //Serial.write("Servo 1 rotation: ");
+      //Serial.write(servo1Pos);
+      //Serial.write("\n");
+      
     }
 
     if (q11 != -16 && q11 != -48) {
       q1 = (q11+48)*2;
-      //if (q1 < 55) {
-      //  q1 = 55;
-      //}
-      
-      analogWrite(13, q1);
+
+      char servo1LastBit = msg[1] >> 6;
+      servo2Pos = (msg[1] - (servo1LastBit << 6)) << 2;
+      //Serial.write("Servo 2 rotation: ");
+      //Serial.write(servo2Pos);
+      //Serial.write("\n");
     
-    
-    sendCommand("AT+");
+    //sendCommand("AT+");
   }
   }
 }
@@ -153,26 +176,25 @@ void handleLCD() {
     
     // (note: line 1 is the second row, since counting begins with 0):
     lcd.setCursor(0, 1);
-    if (q0 != -16) {
-      lcd.print(q0);
-      lcd.print("   ");
-      lcd.print(q1);
-      lcd.print("    ");
-    }
-    
+    lcd.print(msg);
+    lcd.print("   ");
+    //Serial.print(msg);
+    //Serial.print("\n");
     
 }
 
 void loop() {
   
-    int m;
-    m = atoi(msg);
+    //Serial.write(msg);
+    //Serial.write("\n");
     
   if (iters_b >= NUM_ITERS_BLUETOOTH) {
     handleBluetooth();
     //Serial.print(m);
     //Serial.print("\n");
     iters_b = 0;
+    servo1.write(servo1Pos);
+    servo2.write(servo2Pos);
   } else {
     iters_b++;
   }

@@ -22,19 +22,22 @@ motion = [0, 0, 0, 0]
 accumulated = [0, 0, 0, 0]
 increase = False
 decrease = False
+count = 0
 
 
 address = "F0:45:DA:03:1A:2B"
+# address = "0C:B2:B7:2D:B3:AF"
+# address = "F0:45:DA:03:34:30"
 MODEL_NBR_UUID = "00004124-0000-1000-8000-00805f9b34fb"
+# MODEL_NBR_UUID = "0000ffe1-0000-1000-8000-00805f9b34fb"
 
 
 def get_new_accumulated():
 
     global increase
     global decrease
+    global count
 
-    increase = False
-    decrease = False
 
     if abs(motion[0]) < 0.05:
         motion[0] = 0
@@ -47,21 +50,32 @@ def get_new_accumulated():
 
     for event in pygame.event.get():
         if event.type == JOYAXISMOTION:
+            # print(event)
             if event.axis < 4:
-                motion[event.axis] = -event.value * 10
-                print(event)
-            elif event.axis == 4:
+                motion[event.axis] = -event.value * 20
+                #print(event)
+            elif event.axis == 4 and event.value > 0:
+                print("Decrease")
                 decrease = True
-            elif event.axis == 5:
+            elif event.axis == 5 and event.value > 0:
+                print("Increase")
                 increase = True
+            elif event.axis == 4 and event.value < 0:
+                print("Stop decreasing")
+                decrease = False
+            elif event.axis == 5 and event.value < 0:
+                print("Stop increasing")
+                increase = False
         if event.type == QUIT:
             pygame.quit()
             sys.exit()
 
+    count += 1
+
     for i in range(0, len(motion)):
         accumulated[i] += motion[i]
-        if accumulated[i] < 55:
-            accumulated[i] = 55
+        if accumulated[i] < 7:
+            accumulated[i] = 7
         if accumulated[i] >= 127:
             accumulated[i] = 126
         accumulated[i] = int(accumulated[i])
@@ -92,7 +106,7 @@ async def main(address):
         await client.connect()
         while True:
             model_number = await read_characteristic(client, MODEL_NBR_UUID)
-            print(f"Characteristic: {model_number}")
+            # print(f"Characteristic: {model_number}")
             get_new_accumulated()
             speed_val = 0
             if increase:
@@ -100,19 +114,33 @@ async def main(address):
             elif decrease:
                 speed_val = 2
 
-            value = ((chr(accumulated[1]) + chr(accumulated[3]) +
-                      str(speed_val) + "                                "
-                                            "          ")[0:20])
+            first_rot = accumulated[1]
+            second_rot = accumulated[3]
 
-            # if model_number == expected:
+            first7 = first_rot >> 2
+            second7 = second_rot >> 2
+            register = (speed_val << 13) + (first7 << 7) + (second7 << 1)
+            # print("{0:b}".format(register))
+            val1 = register >> 8
+            val2 = (register - ((register >> 8) << 8)) >> 1
+            # print("{0:b}".format(val1))
+            # print("{0:b}".format(val2))
+            # print(val1)
+            # print(val2)
+            char1 = chr(val1)
+            char2 = chr(val2)
+
+            value = ((char1 + char2 +
+                      "                                          ")[0:20])
 
             x = await write_characteristic(client, MODEL_NBR_UUID, value)
 
-            print("--------------------")
+            """print("--------------------")
             print(value)
+            print("{0:b}".format(register))
             print(accumulated[1])
             print(accumulated[3])
-            print()
+            print()"""
             # response = await read_characteristic(client, MODEL_NBR_UUID)
             # print(f"Writing: {value}")
             time.sleep(0.1)

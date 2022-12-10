@@ -1,8 +1,7 @@
 // include the library code:
 #include <LiquidCrystal.h>
+#include <Servo.h>
 
-#define SPEED_UP          A0
-#define SPEED_DOWN        A1
 #define PWM_MAX_DUTY      255
 #define PWM_MIN_DUTY      50
 #define PWM_START_DUTY    80
@@ -32,6 +31,9 @@ int rw = 0;
 int iters_b = 0;
 int iters_l = 0;
 
+Servo servo1;
+Servo servo2;
+
 // --------------------------------------
 
 void sendCommand(const char * command){
@@ -52,36 +54,18 @@ void writeToBLE(char value) {
 }
 
 void readFromBLE(char* reply) {
-  
-  //ACSR   = 0x10;           // Disable and clear (flag bit) analog comparator interrupt
-  int u = 0;
+  int i = 0;
+  //ACSR &= ~0x08;                    // Enable analog comparator interrupt
   while (Serial1.available()) {
-    reply[u] = Serial1.read();
-    u++;
+    reply[i] = Serial1.read();
+    i++;
   }
-  
+  if (i > 19) {
+    i = 19;
+  }
+  reply[i] = '\0';
   //ACSR |= 0x08;                    // Enable analog comparator interrupt
-
-  reply[u] = '\0';
-  
-  Serial.print(reply[0]);
-  Serial.print(reply[1]);
-  Serial.print(reply[2]);
-  Serial.print(reply[3]);
-  Serial.print(reply[4]);
-  Serial.print(reply[5]);
-  Serial.print(reply[6]);
-  Serial.print(reply[7]);
-  Serial.print(reply[8]);
-  Serial.print(reply[9]);
-  Serial.print(reply[10]);
-  Serial.print(reply[11]);
-  Serial.print(reply[12]);
-  Serial.print(reply[13]);
-  Serial.print(reply[14]);
-  Serial.print(reply[15]);
-  Serial.print("\n");
-  
+  //Serial.print("read from ble\n");
   return;
 }
 
@@ -142,30 +126,36 @@ void handleBluetooth() {
     q2 = (msg[2]-'0'+48);
 
     //Serial.print(msg);
-    //Serial.print("\n");
+    Serial.print("\n");
+
+    //servo1.write(msg[0]);
+    //servo2.write(msg[1]);
 
     if (q01 != -16 && q01 != 78 && q01 != 21 && q01 != 29 && q01 != 69) {
-      q0 = (q01+48)*2;
-      if (q0 < 55) {
-        q0 = 55;
-      }
-      Serial.print(q01);
-      Serial.print("\n");
+      q0 = q01*2;
+      //if (q0 < 55) {
+      //  q0 = 55;
+      //}
+      Serial.print(q0);
+      //Serial.print("\n");
       
-      analogWrite(12, q0);
+      servo1.write(q0);
     }
 
     if (q11 != -16 && q11 != -48) {
-      q1 = (q11+48)*2;
+      q1 = q11*2;
       //if (q1 < 55) {
       //  q1 = 55;
       //}
       
-      analogWrite(13, q1);
+      //Serial.print(q1);
+      //Serial.print("\n");
+      
+      servo2.write(q1);
     
-    
+      }
+  
     sendCommand("AT+");
-  }
   }
 }
 
@@ -189,6 +179,7 @@ void handleLCD() {
 
 // Analog comparator ISR
 ISR (ANALOG_COMP_vect) {
+  //Serial.print("1\n");
   // BEMF debounce
     for(i = 0; i < 100; i++) {
       if(bldc_step & 1){
@@ -203,6 +194,7 @@ ISR (ANALOG_COMP_vect) {
     bldc_step++;
     bldc_step %= 6;
     e = 1;
+  //Serial.print("2\n");
   
 }
 
@@ -239,27 +231,27 @@ void bldc_move() {       // BLDC motor commutation function
 
 ////////////////////////////////////////////////////////////////////////////////////////
 void BEMF_A_RISING() {
-  ADMUX = 2;              // Select analog channel 4 as comparator negative input
+  ADMUX = 4;              // Select analog channel 4 as comparator negative input
   ACSR |= 0x03;           // rising edge
 }
 void BEMF_A_FALLING() {
-  ADMUX = 2;              // Select analog channel 4 as comparator negative input
+  ADMUX = 4;              // Select analog channel 4 as comparator negative input
   ACSR &= ~0x01;          // falling edge
 }
 void BEMF_B_RISING() {
-  ADMUX = 3;              // Select analog channel 2 as comparator negative input
+  ADMUX = 2;              // Select analog channel 2 as comparator negative input
   ACSR |= 0x03;           // rising edge
 }
 void BEMF_B_FALLING() {
-  ADMUX = 3;              // Select analog channel 2 as comparator negative input
+  ADMUX = 2;              // Select analog channel 2 as comparator negative input
   ACSR &= ~0x01;          // falling edge
 }
 void BEMF_C_RISING() {
-  ADMUX = 4;              // Select analog channel 3 as comparator negative input
+  ADMUX = 3;              // Select analog channel 3 as comparator negative input
   ACSR |= 0x03;           // rising edge
 }
 void BEMF_C_FALLING() {
-  ADMUX = 4;              // Select analog channel 3 as comparator negative input
+  ADMUX = 3;              // Select analog channel 3 as comparator negative input
   ACSR &= ~0x01;          // falling edge
 }
 
@@ -395,12 +387,11 @@ void setup() {
   TCCR2B = 0x01;
   // Analog comparator setting
   ACSR   = 0x10;           // Disable and clear (flag bit) analog comparator interrupt
-  pinMode(SPEED_UP,   INPUT_PULLUP);
-  pinMode(SPEED_DOWN, INPUT_PULLUP);
-
   
-  pinMode(12, OUTPUT);
-  pinMode(13, OUTPUT);
+  servo1.attach(12);
+  servo2.attach(13);
+  //pinMode(12, OUTPUT);
+  //pinMode(13, OUTPUT);
 
   
 }
@@ -429,7 +420,7 @@ void loop() {
   ADCSRB = (1 << ACME);
   
   while (1) {
-    while (!(digitalRead(SPEED_UP)) && motor_speed < PWM_MAX_DUTY) {
+    /*while (!(digitalRead(SPEED_UP)) && motor_speed < PWM_MAX_DUTY) {
       motor_speed++;
       SET_PWM_DUTY(motor_speed);
       Serial.print("u\n");
@@ -439,32 +430,38 @@ void loop() {
       motor_speed--;
       SET_PWM_DUTY(motor_speed);
       Serial.print("d\n");
-      delay(10);
-    }
+      delay(100);
+    }*/
 
     int m;
     m = atoi(msg);
-    //analogWrite(12, m);
-    //analogWrite(13, m);
+    //Serial.write(msg);
+    //Serial.write("\n");
     
 
   
     if (iters_b >= NUM_ITERS_BLUETOOTH) {
+      //Serial.print("handle bluetooth begin");
+      //Serial.print("\n");
       handleBluetooth();
-      //Serial.print(m);
+      //Serial.print("handle bluetooth done");
       //Serial.print("\n");
       iters_b = 0;
     } else {
       iters_b++;
     }
-
+    /*
     if (iters_l >= NUM_ITERS_LCD) {
+      Serial.print("handle lcd begin");
+      Serial.print("\n");
       handleLCD();
+      Serial.print("handle lcd done");
+      Serial.print("\n");
       iters_l = 0;
     } else {
       iters_l++;
     }
-    
+    */
   }
     
   
