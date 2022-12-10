@@ -1,6 +1,5 @@
 import asyncio
 from bleak import BleakScanner
-from bleak import BleakClient
 
 
 async def get_device(name: str):
@@ -11,12 +10,11 @@ async def get_device(name: str):
 
 
 async def main():
-    # devices = await BleakScanner.discover()
-
     d = await get_device("BT05")
 
-    ble_device = BleakClient
-
+    print("-----------------")
     print(d)
+    print(d.metadata['uuids'])
+    print()
 
 asyncio.run(main())

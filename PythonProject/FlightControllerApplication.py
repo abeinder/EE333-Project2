@@ -1,3 +1,11 @@
+"""
+This is the primary application for the flight controller. In order to connect
+to the bluetooth, the address and UUID for the breakout board must be found.
+Several that we have used on our project are listed below. These can be found
+by using the listAll.py program within Testing.
+
+"""
+
 import sys
 import pygame
 from pygame.locals import *
@@ -38,7 +46,6 @@ def get_new_accumulated():
     global decrease
     global count
 
-
     if abs(motion[0]) < 0.05:
         motion[0] = 0
     if abs(motion[1]) < 0.05:
@@ -50,10 +57,8 @@ def get_new_accumulated():
 
     for event in pygame.event.get():
         if event.type == JOYAXISMOTION:
-            # print(event)
             if event.axis < 4:
                 motion[event.axis] = -event.value * 20
-                #print(event)
             elif event.axis == 4 and event.value > 0:
                 print("Decrease")
                 decrease = True
@@ -80,9 +85,6 @@ def get_new_accumulated():
             accumulated[i] = 126
         accumulated[i] = int(accumulated[i])
 
-    # print(motion)
-    # print(accumulated)
-
     clock.tick(60)
 
 
@@ -99,8 +101,6 @@ async def write_characteristic(client, uuid, data: str):
 
 async def main(address):
     client = BleakClient(address)
-
-    expected = "AT+\r\n"
 
     try:
         await client.connect()
@@ -120,29 +120,22 @@ async def main(address):
             first7 = first_rot >> 2
             second7 = second_rot >> 2
             register = (speed_val << 13) + (first7 << 7) + (second7 << 1)
-            # print("{0:b}".format(register))
             val1 = register >> 8
             val2 = (register - ((register >> 8) << 8)) >> 1
-            # print("{0:b}".format(val1))
-            # print("{0:b}".format(val2))
-            # print(val1)
-            # print(val2)
             char1 = chr(val1)
             char2 = chr(val2)
 
             value = ((char1 + char2 +
                       "                                          ")[0:20])
 
-            x = await write_characteristic(client, MODEL_NBR_UUID, value)
+            await write_characteristic(client, MODEL_NBR_UUID, value)
 
-            """print("--------------------")
+            print("--------------------")
             print(value)
             print("{0:b}".format(register))
             print(accumulated[1])
             print(accumulated[3])
-            print()"""
-            # response = await read_characteristic(client, MODEL_NBR_UUID)
-            # print(f"Writing: {value}")
+            print()
             time.sleep(0.1)
     except Exception as e:
         print(e)

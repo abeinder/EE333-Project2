@@ -9,7 +9,8 @@ screen = pygame.display.set_mode((500, 500), 0, 32)
 clock = pygame.time.Clock()
 
 pygame.joystick.init()
-joysticks = [pygame.joystick.Joystick(i) for i in range(pygame.joystick.get_count())]
+joysticks = [pygame.joystick.Joystick(i)
+             for i in range(pygame.joystick.get_count())]
 for joystick in joysticks:
     print(joystick.get_name())
 

@@ -3,6 +3,7 @@ import time
 
 from bleak import BleakClient
 
+# TODO replace with your own
 address = "F0:45:DA:03:1A:2B"
 MODEL_NBR_UUID = "00004124-0000-1000-8000-00805f9b34fb"
 
