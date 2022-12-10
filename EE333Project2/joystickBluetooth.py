@@ -25,11 +25,11 @@ decrease = False
 count = 0
 
 
-address = "F0:45:DA:03:1A:2B"
+# address = "F0:45:DA:03:1A:2B"
 # address = "0C:B2:B7:2D:B3:AF"
-# address = "F0:45:DA:03:34:30"
-MODEL_NBR_UUID = "00004124-0000-1000-8000-00805f9b34fb"
-# MODEL_NBR_UUID = "0000ffe1-0000-1000-8000-00805f9b34fb"
+address = "F0:45:DA:03:34:30"
+# MODEL_NBR_UUID = "00004124-0000-1000-8000-00805f9b34fb"
+MODEL_NBR_UUID = "0000ffe1-0000-1000-8000-00805f9b34fb"
 
 
 def get_new_accumulated():
@@ -106,7 +106,7 @@ async def main(address):
         await client.connect()
         while True:
             model_number = await read_characteristic(client, MODEL_NBR_UUID)
-            # print(f"Characteristic: {model_number}")
+            print(f"Characteristic: {model_number}")
             get_new_accumulated()
             speed_val = 0
             if increase:
